@@ -16,7 +16,7 @@
     "winston": "^3.19.0"
   },
   "dependencies": {
-    "express": "^5.2.1",
+    "express": "^4.22.1",
     "mongoose": "^9.1.1",
     "multer": "^2.0.2",
     "node-cache": "^5.1.2"
