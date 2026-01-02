@@ -1,0 +1,6 @@
+node_modules
+*.env
+*.zip
+*.log
+build
+public/www/uploads
