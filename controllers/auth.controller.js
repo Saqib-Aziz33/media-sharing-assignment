@@ -20,9 +20,9 @@ exports.registerUser = asyncHandler(async (req, res) => {
   // create the user
   const user = new User({
     ...matchedData(req),
-    role: "consumer",
     passwordHash,
   });
+  console.log(user)
   await user.save();
   return res.status(201).json({ message: "User registered successfully" });
 });

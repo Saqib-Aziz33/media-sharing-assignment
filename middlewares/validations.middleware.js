@@ -38,11 +38,11 @@ const userValidationRules = [
     .matches(/[A-Z]/)
     .withMessage("Password must contain at least one uppercase letter"),
 
-  // body("role")
-  //   .notEmpty()
-  //   .withMessage("Role is required")
-  //   .isIn(["creator", "consumer"])
-  //   .withMessage("Role must be either 'creator' or 'consumer'"),
+  body("role")
+    .notEmpty()
+    .withMessage("Role is required")
+    .isIn(["creator", "consumer"])
+    .withMessage("Role must be either 'creator' or 'consumer'"),
 ];
 
 const emailPasswordRules = [

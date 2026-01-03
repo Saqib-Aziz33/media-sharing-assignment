@@ -7,6 +7,7 @@ const app = document.querySelector("#app");
 let currentUser = JSON.parse(localStorage.getItem("user")) || null;
 let currentView = currentUser ? (currentUser.role === "creator" ? "dashboard" : "feed") : "login";
 let currentPostId = null;
+let currentSearch = "";
 
 // Routing logic
 const navigateTo = (view, data = null) => {
@@ -19,6 +20,7 @@ const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   currentUser = null;
+  currentSearch = "";
   navigateTo("login");
 };
 
@@ -94,28 +96,48 @@ const RegisterForm = () => `
   </div>
 `;
 
+const SearchBar = () => `
+  <div class="mb-6">
+    <form onsubmit="window.dispatch('search', event)" class="flex gap-2">
+      <input 
+        type="text" 
+        name="search" 
+        value="${currentSearch}" 
+        placeholder="Search posts..." 
+        class="input-field mt-0"
+      >
+      <button type="submit" class="btn-primary">Search</button>
+      ${currentSearch ? `<button type="button" onclick="window.dispatch('clear-search')" class="btn-secondary">Clear</button>` : ''}
+    </form>
+  </div>
+`;
+
 const CreatorDashboard = async () => {
   let posts = [];
   try {
-    const res = await api.getPosts();
-    posts = res.posts; // API returns array directly now based on my edit
+    const res = await api.getPosts(currentSearch);
+    posts = res.posts;
   } catch (e) {
     console.error(e);
     posts = [];
   }
 
-  // Filter posts for this creator only
-  // Actually the getAll API returns all posts. A real app usually filters on backend for 'my posts'.
-  // Use `creator._id` comparison.
   const myPosts = posts.filter(p => p.creator?._id === currentUser._id || p.creator === currentUser._id);
 
   return `
     <div class="container mx-auto px-4 py-8">
-      <div class="flex justify-between items-center mb-8">
+      <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <h1 class="text-3xl font-bold text-white">Creator Dashboard</h1>
         <button onclick="window.dispatch('open-create-modal')" class="btn-primary">Create New Post</button>
       </div>
 
+      ${SearchBar()}
+
+      ${myPosts.length === 0 ?
+      `<div class="text-center text-slate-400 py-12">
+            ${currentSearch ? `No posts found matching "${currentSearch}"` : 'No posts yet.'}
+         </div>`
+      : `
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         ${myPosts.map(post => `
           <div class="card relative group">
@@ -132,8 +154,9 @@ const CreatorDashboard = async () => {
           </div>
         `).join('')}
       </div>
+      `}
       
-      <!-- Create/Edit Modal (simplistic implementation) -->
+      <!-- Create/Edit Modal -->
       <dialog id="postDialog" class="bg-slate-800 text-white p-6 rounded-lg backdrop:bg-black/50 w-full max-w-lg">
         <form onsubmit="window.dispatch('submit-post', event)">
             <input type="hidden" name="id" id="postId">
@@ -150,6 +173,10 @@ const CreatorDashboard = async () => {
             <div class="mb-4">
                 <label class="block text-sm mb-1">Caption</label>
                 <textarea name="caption" id="postCaption" class="input-field h-24"></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm mb-1">People Present (comma separated names)</label>
+                <input type="text" id="postPeople" class="input-field" placeholder="e.g. Alice, Bob">
             </div>
             <div class="mb-4">
                 <label class="block text-sm mb-1">Location</label>
@@ -169,7 +196,7 @@ const CreatorDashboard = async () => {
 const ConsumerFeed = async () => {
   let posts = [];
   try {
-    const res = await api.getPosts();
+    const res = await api.getPosts(currentSearch);
     posts = res.posts;
   } catch (e) { console.error(e); }
 
@@ -177,6 +204,13 @@ const ConsumerFeed = async () => {
     <div class="container mx-auto px-4 py-8">
       <h1 class="text-3xl font-bold text-white mb-8">Explore Feed</h1>
       
+      ${SearchBar()}
+
+      ${posts.length === 0 ?
+      `<div class="text-center text-slate-400 py-12">
+            ${currentSearch ? `No posts found matching "${currentSearch}"` : 'No posts available.'}
+         </div>`
+      : `
       <div class="max-w-2xl mx-auto space-y-8">
         ${posts.map(post => `
           <div class="card">
@@ -201,6 +235,7 @@ const ConsumerFeed = async () => {
           </div>
         `).join('')}
       </div>
+      `}
     </div>
   `;
 };
@@ -211,7 +246,7 @@ const PostDetails = async () => {
   let post = null;
   try {
     const res = await api.getPost(currentPostId);
-    post = res.post; // Adjusted based on latest 'getById' response structure { post: {} }
+    post = res.post;
   } catch (e) {
     console.error(e);
     alert("Failed to load post");
@@ -238,6 +273,11 @@ const PostDetails = async () => {
                     <span>${new Date(post.createdAt).toLocaleDateString()}</span>
                     ${post.location ? `<span>• ${post.location}</span>` : ''}
                 </div>
+                ${post.peoplePresent && post.peoplePresent.length ? `
+                    <div class="mb-4 text-slate-300">
+                        <span class="font-bold text-slate-400">With:</span> ${post.peoplePresent.join(', ')}
+                    </div>
+                ` : ''}
                 <p class="text-slate-300">${post.caption || ''}</p>
             </div>
 
@@ -278,15 +318,23 @@ window.dispatch = async (action, payload) => {
     switch (action) {
       case 'nav-login': navigateTo('login'); break;
       case 'nav-register': navigateTo('register'); break;
-      case 'nav-dashboard': navigateTo('dashboard'); break;
-      case 'nav-feed': navigateTo('feed'); break;
+      case 'nav-dashboard': {
+        currentSearch = "";
+        navigateTo('dashboard');
+        break;
+      }
+      case 'nav-feed': {
+        currentSearch = "";
+        navigateTo('feed');
+        break;
+      }
       case 'logout': logout(); break;
 
       case 'login': {
         const form = payload.target;
         const data = await api.login(form.email.value, form.password.value);
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user)); // Corrected accessor
+        localStorage.setItem("user", JSON.stringify(data.user));
         currentUser = data.user;
         navigateTo(currentUser.role === 'creator' ? 'dashboard' : 'feed');
         break;
@@ -294,13 +342,22 @@ window.dispatch = async (action, payload) => {
 
       case 'register': {
         const form = payload.target;
-        const data = await api.register(form.name.value, form.email.value, form.password.value, form.role.value);
-        // Auto login or ask to login? Let's auto login or redirect to login.
-        // Assuming register returns user/token similar to login? Usually register just creates.
-        // If the API returns token on register, we can log in.
-        // Checking auth.controller.js would be ideal but let's assume redirect to login.
+        await api.register(form.name.value, form.email.value, form.password.value, form.role.value);
         alert("Registration successful! Please login.");
         navigateTo('login');
+        break;
+      }
+
+      case 'search': {
+        const form = payload.target;
+        currentSearch = form.search.value;
+        render(); // Re-render to trigger fetch with new search term
+        break;
+      }
+
+      case 'clear-search': {
+        currentSearch = "";
+        render();
         break;
       }
 
@@ -330,14 +387,12 @@ window.dispatch = async (action, payload) => {
         document.getElementById('postId').value = '';
         document.getElementById('modalTitle').innerText = 'Create Post';
         dialog.querySelector('form').reset();
+        document.getElementById('postPeople').value = '';
         dialog.showModal();
         break;
       }
 
       case 'edit-post': {
-        // We need to fetch the post details again or find it in the list if we had it but here access is tricky unless we store posts.
-        // For simplicity, let's fetch it or just not support pre-filling correctly in this simple version without a store.
-        // Let's simplified: fetch it first.
         const res = await api.getPost(payload);
         const p = res.post;
         const dialog = document.getElementById('postDialog');
@@ -345,8 +400,8 @@ window.dispatch = async (action, payload) => {
         document.getElementById('modalTitle').innerText = 'Edit Post';
         document.getElementById('postTitle').value = p.title;
         document.getElementById('postCaption').value = p.caption || '';
+        document.getElementById('postPeople').value = p.peoplePresent ? p.peoplePresent.join(', ') : '';
         document.getElementById('postLocation').value = p.location || '';
-        // Image handling is tricky for edit (optional), handled in backend
         dialog.showModal();
         break;
       }
@@ -355,6 +410,12 @@ window.dispatch = async (action, payload) => {
         const form = payload.target;
         const formData = new FormData(form);
         const id = document.getElementById('postId').value;
+        const peopleInput = document.getElementById('postPeople').value;
+
+        if (peopleInput) {
+          const people = peopleInput.split(',').map(p => p.trim()).filter(p => p);
+          people.forEach(p => formData.append('peoplePresent', p));
+        }
 
         try {
           if (id) {
@@ -406,10 +467,6 @@ const render = async () => {
       main = await CreatorDashboard();
     } else if (currentView === 'feed') {
       if (currentUser.role !== 'consumer') {
-        // The requirement says "consumer should not access the creator dashboard", 
-        // but doesn't explicitly ban creator from feed. I'll allow creator to see feed or just redirect.
-        // "if user is creator then it will be redirected to post creation dashboard... if role is consumer he will be redirected to viewer page"
-        // Implies separation.
         navigateTo('dashboard');
         return;
       }
