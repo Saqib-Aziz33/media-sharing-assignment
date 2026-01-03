@@ -6,9 +6,9 @@ function initRoutes(app) {
     res.json({ message: "Welcome to the Media Sharing API" });
   });
 
-  app.use("/auth", require("./auth.routes"));
+  app.use("/api/v1/auth", require("./auth.routes"));
   // app.use("/users", isAuthenticated, require("./user.routes"));
-  app.use("/posts", isAuthenticated, require("./post.routes"));
+  app.use("/api/v1/posts", isAuthenticated, require("./post.routes"));
 
   app.use("/*", notFoundHandler);
   app.use(errorHandler);

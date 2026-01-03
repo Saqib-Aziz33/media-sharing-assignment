@@ -12,14 +12,14 @@ const validate = (req, res, next) => {
 };
 
 const userValidationRules = [
-  body("username")
+  body("name")
     .trim()
     .notEmpty()
-    .withMessage("Username is required")
+    .withMessage("name is required")
     .isLength({ min: 3, max: 30 })
-    .withMessage("Username must be between 3 and 30 characters")
+    .withMessage("name must be between 3 and 30 characters")
     .matches(/^[a-zA-Z0-9_]+$/)
-    .withMessage("Username can only contain letters, numbers, and underscores"),
+    .withMessage("name can only contain letters, numbers, and underscores"),
 
   body("email")
     .notEmpty()

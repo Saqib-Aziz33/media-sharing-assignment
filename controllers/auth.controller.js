@@ -21,7 +21,7 @@ exports.registerUser = asyncHandler(async (req, res) => {
   const user = new User({
     ...matchedData(req),
     role: "consumer",
-    password: passwordHash,
+    passwordHash,
   });
   await user.save();
   return res.status(201).json({ message: "User registered successfully" });
@@ -35,7 +35,7 @@ exports.loginUser = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "Invalid email or password" });
   }
 
-  const isMatch = await bcrypt.compare(password, user.password);
+  const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) {
     return res.status(400).json({ message: "Invalid email or password" });
   }
@@ -49,6 +49,6 @@ exports.loginUser = asyncHandler(async (req, res) => {
   return res.status(200).json({
     message: "User logged in successfully",
     token,
-    user: { ...user, password: undefined },
+    user: { ...user, passwordHash: undefined },
   });
 });

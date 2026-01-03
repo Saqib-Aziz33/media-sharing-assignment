@@ -4,13 +4,16 @@ const controller = require("../controllers/post.controller");
 
 const router = Router();
 
-router.route("/").get(controller.getAll).post(allowedRoles("creator"));
+router
+  .route("/")
+  .get(controller.getAll)
+  .post(allowedRoles("creator"), controller.create);
 
 router
   .route("/:postId")
-  .get()
-  .put(allowedRoles("creator"))
-  .delete(allowedRoles("creator"));
+  .get(controller.getById)
+  .put(allowedRoles("creator"), controller.update)
+  .delete(allowedRoles("creator"), controller.delete);
 
 router.route("/:postId/comment").post();
 

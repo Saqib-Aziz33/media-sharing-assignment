@@ -21,13 +21,13 @@ const isAuthenticated = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, config.jwtSecret);
     // find the user
-    const user = await User.findById(decoded._id);
+    const user = await User.findById(decoded._id).lean();
     if (!user) {
       res.status(404).json({ success: false, message: "user not found" });
       return;
     }
 
-    req.user = user;
+    req.user = { ...user, passwordHash: undefined };
     next();
   } catch (e) {
     return res.status(500).json({

@@ -8,9 +8,9 @@ async function promptUserDetails() {
   return inquirer.prompt([
     {
       type: "input",
-      name: "username",
-      message: "Enter username:",
-      validate: (input) => (input ? true : "Username is required"),
+      name: "name",
+      message: "Enter name:",
+      validate: (input) => (input ? true : "name is required"),
     },
     {
       type: "input",
@@ -30,26 +30,27 @@ async function promptUserDetails() {
   ]);
 }
 
-async function createUser(username, email, password) {
+async function createUser(name, email, password) {
   try {
     await connectDB();
     const hashed = await bcrypt.hash(password, 10);
     const user = new User({
-      username,
+      name,
       email,
       passwordHash: hashed,
       role: "creator",
     });
     await user.save();
-    console.log("✅ Admin created successfully");
+    console.log("✅ User created successfully");
   } catch (err) {
-    console.error("❌ Error creating admin:", err);
+    console.error("❌ Error creating user:", err);
   }
 }
 
 async function main() {
-  const { username, email, password } = await promptUserDetails();
-  await createUser(username, email, password);
+  const { name, email, password } = await promptUserDetails();
+  await createUser(name, email, password);
+  process.exit(0);
 }
 
 main();
