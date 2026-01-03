@@ -1,4 +1,4 @@
-const { body, validationResult } = require("express-validator");
+const { body, param, validationResult } = require("express-validator");
 const { Types } = require("mongoose");
 
 const validate = (req, res, next) => {
@@ -60,4 +60,20 @@ module.exports = {
   validate,
   userValidationRules,
   emailPasswordRules,
+  postValidationRules: [
+    body("title").trim().notEmpty().withMessage("Title is required"),
+    body("caption").optional().trim(),
+    body("location").optional().trim(),
+  ],
+  postUpdateValidationRules: [
+    body("title").optional().trim().notEmpty().withMessage("Title cannot be empty"),
+    body("caption").optional().trim(),
+    body("location").optional().trim(),
+  ],
+  commentValidationRules: [
+    body("text").trim().notEmpty().withMessage("Comment text is required"),
+  ],
+  postParamValidationRules: [
+    param("postId").isMongoId().withMessage("Invalid Post ID"),
+  ],
 };
