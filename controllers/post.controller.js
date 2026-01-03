@@ -41,17 +41,63 @@ exports.getAll = asyncHandler(async (req, res) => {
     });
   }
 
+  // Lookup Creator
+  pipeline.push({
+    $lookup: {
+      from: "users",
+      localField: "creator",
+      foreignField: "_id",
+      as: "creator",
+    },
+  });
+  pipeline.push({
+    $unwind: {
+      path: "$creator",
+      preserveNullAndEmptyArrays: true,
+    },
+  });
+
+  // Lookup Comments with User details
   pipeline.push({
     $lookup: {
       from: "comments",
-      localField: "_id",
-      foreignField: "post",
+      let: { postId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$post", "$$postId"] } } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "user",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: {
+            path: "$user",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            "user.password": 0,
+            "user.__v": 0,
+          },
+        },
+      ],
       as: "comments",
     },
   });
 
   pipeline.push({
     $sort: { createdAt: -1 },
+  });
+
+  pipeline.push({
+    $project: {
+      "creator.password": 0,
+      "creator.__v": 0,
+    },
   });
 
   const posts = await Post.aggregate(pipeline);

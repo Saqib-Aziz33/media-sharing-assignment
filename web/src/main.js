@@ -229,8 +229,24 @@ const ConsumerFeed = async () => {
             <h2 class="text-xl font-bold text-white mb-2">${post.title}</h2>
             <p class="text-slate-300 mb-4">${post.caption || ''}</p>
             
-            <button onclick="window.dispatch('view-post', '${post._id}')" class="text-blue-400 hover:text-blue-300 font-medium">
-                View Details & Comments (${post.comments?.length || 0})
+            <!-- Comments Section -->
+            <div class="mt-4 border-t border-slate-700 pt-4 mb-4">
+                <h4 class="text-white font-bold mb-3 text-sm uppercase tracking-wide">Comments (${post.comments?.length || 0})</h4>
+                <div class="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                    ${post.comments && post.comments.length ? post.comments.map(c => `
+                            <div class="bg-slate-900/50 p-3 rounded-md border border-slate-800">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="font-bold text-sm text-blue-400">${c.user?.name || 'Unknown'}</span>
+                                <span class="text-[10px] text-slate-500">${new Date(c.createdAt || Date.now()).toLocaleDateString()}</span>
+                            </div>
+                            <p class="text-slate-300 text-sm">${c.text}</p>
+                            </div>
+                    `).join('') : '<p class="text-slate-500 text-sm italic">No comments yet.</p>'}
+                </div>
+            </div>
+
+            <button onclick="window.dispatch('view-post', '${post._id}')" class="w-full btn-secondary text-center py-2">
+                View Details & Add Comment
             </button>
           </div>
         `).join('')}
@@ -368,9 +384,13 @@ window.dispatch = async (action, payload) => {
       case 'add-comment': {
         const form = payload.target;
         const text = form.comment.value;
-        await api.addComment(currentPostId, text);
-        form.reset();
-        render(); // refresh
+        const id = form.dataset.postId || currentPostId;
+
+        if (id) {
+          await api.addComment(id, text);
+          form.reset();
+          render(); // refresh
+        }
         break;
       }
 
