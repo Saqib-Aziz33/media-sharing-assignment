@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+body {
+  background-color: #0f172a;
+  /* Slate 900 */
+  color: #f8fafc;
+  /* Slate 50 */
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.input-field {
+  @apply w-full px-4 py-2 mt-2 text-slate-900 bg-white border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500;
+}
+
+.btn-primary {
+  @apply px-4 py-2 font-bold text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors duration-200 cursor-pointer;
+}
+
+.btn-secondary {
+  @apply px-4 py-2 font-bold text-slate-200 bg-slate-700 rounded-md hover:bg-slate-600 transition-colors duration-200 cursor-pointer;
+}
+
+.btn-danger {
+  @apply px-4 py-2 font-bold text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors duration-200 cursor-pointer;
+}
+
+.card {
+  @apply p-6 bg-slate-800 rounded-lg shadow-xl border border-slate-700;
+}
