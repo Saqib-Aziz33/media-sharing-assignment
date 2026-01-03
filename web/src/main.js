@@ -232,7 +232,7 @@ const ConsumerFeed = async () => {
             <!-- Comments Section -->
             <div class="mt-4 border-t border-slate-700 pt-4 mb-4">
                 <h4 class="text-white font-bold mb-3 text-sm uppercase tracking-wide">Comments (${post.comments?.length || 0})</h4>
-                <div class="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                <div class="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar mb-4">
                     ${post.comments && post.comments.length ? post.comments.map(c => `
                             <div class="bg-slate-900/50 p-3 rounded-md border border-slate-800">
                             <div class="flex justify-between items-start mb-1">
@@ -243,11 +243,13 @@ const ConsumerFeed = async () => {
                             </div>
                     `).join('') : '<p class="text-slate-500 text-sm italic">No comments yet.</p>'}
                 </div>
+                
+                <!-- Add Comment Form for Feed -->
+                <form onsubmit="window.dispatch('add-comment', event)" data-post-id="${post._id}" class="flex gap-2">
+                    <input type="text" name="comment" class="input-field mt-0 py-2 text-sm" placeholder="Add a comment..." required>
+                    <button type="submit" class="btn-primary py-2 px-4 text-sm">Post</button>
+                </form>
             </div>
-
-            <button onclick="window.dispatch('view-post', '${post._id}')" class="w-full btn-secondary text-center py-2">
-                View Details & Add Comment
-            </button>
           </div>
         `).join('')}
       </div>
