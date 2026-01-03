@@ -389,9 +389,49 @@ window.dispatch = async (action, payload) => {
         const id = form.dataset.postId || currentPostId;
 
         if (id) {
-          await api.addComment(id, text);
-          form.reset();
-          render(); // refresh
+          try {
+            // Optimistic update or wait for success
+            await api.addComment(id, text);
+
+            // Get container (previous sibling in both layouts)
+            const commentsContainer = form.previousElementSibling;
+
+            if (commentsContainer) {
+              // Create comment HTML
+              const commentHtml = `
+                        <div class="bg-slate-900/50 p-3 rounded-md border border-slate-800">
+                            <div class="flex justify-between items-start mb-1">
+                                <span class="font-bold text-sm text-blue-400">${currentUser.name}</span>
+                                <span class="text-[10px] text-slate-500">${new Date().toLocaleDateString()}</span>
+                            </div>
+                            <p class="text-slate-300 text-sm">${text.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                        </div>
+                    `;
+
+              // Remove empty state if present
+              if (commentsContainer.innerText.includes('No comments yet')) {
+                commentsContainer.innerHTML = '';
+              }
+
+              commentsContainer.insertAdjacentHTML('beforeend', commentHtml);
+              commentsContainer.scrollTop = commentsContainer.scrollHeight;
+
+              // Update counter if present (Feed view)
+              const countHeader = commentsContainer.previousElementSibling;
+              if (countHeader && countHeader.tagName === 'H4') {
+                const match = countHeader.innerText.match(/\d+/);
+                if (match) {
+                  const newCount = parseInt(match[0]) + 1;
+                  countHeader.innerText = `COMMENTS (${newCount})`;
+                }
+              }
+            }
+
+            form.reset();
+          } catch (e) {
+            console.error(e);
+            alert("Failed to add comment");
+          }
         }
         break;
       }
