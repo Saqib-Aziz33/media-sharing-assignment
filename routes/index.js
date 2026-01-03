@@ -1,3 +1,4 @@
+const { isAuthenticated } = require("../middlewares/auth.middleware");
 const { notFoundHandler, errorHandler } = require("../services/error.service");
 
 function initRoutes(app) {
@@ -6,8 +7,8 @@ function initRoutes(app) {
   });
 
   app.use("/auth", require("./auth.routes"));
-  app.use("/users", require("./user.routes"));
-  app.use("/posts", require("./post.routes"));
+  // app.use("/users", isAuthenticated, require("./user.routes"));
+  app.use("/posts", isAuthenticated, require("./post.routes"));
 
   app.use("/*", notFoundHandler);
   app.use(errorHandler);

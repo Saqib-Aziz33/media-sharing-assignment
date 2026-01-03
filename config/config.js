@@ -7,6 +7,7 @@ exports.config = {
   dbUrl: process.env.MONGO_URL || "",
   host,
   sessionSecret: process.env.SESSION_SECRET || "very-secure-secret",
+  jwtSecret: process.env.JWT_SECRET,
   // basic information about the site
   site_info: {
     name: "",
