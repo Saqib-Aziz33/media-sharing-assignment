@@ -73,14 +73,17 @@ export const api = {
         return res.json();
     },
 
-    addComment: async (postId, text) => {
+    addComment: async (postId, text, parentId = null) => {
+        const body = { text };
+        if (parentId) body.parentId = parentId;
+
         const res = await fetch(`${API_URL}/posts/${postId}/comments`, { // Fixed route to match backend
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 ...getAuthHeader(),
             },
-            body: JSON.stringify({ text }),
+            body: JSON.stringify(body),
         });
         if (!res.ok) throw await res.json();
         return res.json();

@@ -197,7 +197,7 @@ exports.delete = asyncHandler(async (req, res) => {
 
 exports.addComment = asyncHandler(async (req, res) => {
   const { postId } = req.params;
-  const { text } = req.body;
+  const { text, parentId } = req.body;
 
   const post = await Post.findById(postId);
 
@@ -205,10 +205,22 @@ exports.addComment = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "Post not found" });
   }
 
+  // If parentId is provided, verify it exists and belongs to the same post
+  if (parentId) {
+    const parentComment = await Comment.findById(parentId);
+    if (!parentComment) {
+      return res.status(404).json({ message: "Parent comment not found" });
+    }
+    if (parentComment.post.toString() !== postId) {
+      return res.status(400).json({ message: "Parent comment must belong to the same post" });
+    }
+  }
+
   const comment = await Comment.create({
     post: postId,
     user: req.user._id,
     text,
+    parent: parentId || null,
   });
 
   res.status(201).json(comment);

@@ -110,7 +110,55 @@ const SearchBar = () => `
       ${currentSearch ? `<button type="button" onclick="window.dispatch('clear-search')" class="btn-secondary">Clear</button>` : ''}
     </form>
   </div>
+  </div>
 `;
+
+const buildCommentTree = (comments) => {
+  const map = {};
+  const roots = [];
+  const sorted = [...comments].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); // Sort by Date
+
+  sorted.forEach(c => {
+    map[c._id] = { ...c, children: [] };
+  });
+
+  sorted.forEach(c => {
+    if (c.parent && map[c.parent]) {
+      map[c.parent].children.push(map[c._id]);
+    } else {
+      roots.push(map[c._id]);
+    }
+  }); // Reverse roots to show newest at bottom? Or top? Usually comments are Oldest Top or Newest Top.
+  // Logic: Standard layout is usually oldest first for threads. 
+  return roots;
+};
+
+const renderCommentNode = (comment, depth = 0) => {
+  const safeText = comment.text ? comment.text.replace(/</g, "&lt;").replace(/>/g, "&gt;") : "";
+  const margin = depth > 0 ? 'ml-4 sm:ml-8 border-l-2 border-slate-800 pl-3' : '';
+
+  return `
+      <div class="comment-node ${margin} mt-3">
+         <div class="bg-slate-900/50 p-3 rounded-md border border-slate-800 hover:border-slate-700 transition-colors">
+             <div class="flex justify-between items-start mb-1">
+                 <span class="font-bold text-sm text-blue-400">${comment.user?.name || 'Unknown'}</span>
+                 <span class="text-[10px] text-slate-500">${new Date(comment.createdAt).toLocaleDateString()}</span>
+             </div>
+             <p class="text-slate-300 text-sm break-all">${safeText}</p>
+             <button class="text-xs text-slate-400 hover:text-white mt-2 font-medium" onclick="window.dispatch('toggle-reply', '${comment._id}')">Reply</button>
+             
+             <!-- Reply Form -->
+             <form id="reply-form-${comment._id}" class="hidden mt-2 flex gap-2" onsubmit="window.dispatch('submit-reply', event)" data-post-id="${comment.post}" data-parent-id="${comment._id}">
+                 <input type="text" name="text" class="input-field mt-0 py-1 text-xs bg-slate-950" placeholder="Reply..." required>
+                 <button type="submit" class="btn-primary py-1 px-3 text-xs">Send</button>
+             </form>
+         </div>
+         <div class="children-container">
+             ${comment.children.map(c => renderCommentNode(c, depth + 1)).join('')}
+         </div>
+      </div>
+    `;
+};
 
 const CreatorDashboard = async () => {
   let posts = [];
@@ -233,15 +281,9 @@ const ConsumerFeed = async () => {
             <div class="mt-4 border-t border-slate-700 pt-4 mb-4">
                 <h4 class="text-white font-bold mb-3 text-sm uppercase tracking-wide">Comments (${post.comments?.length || 0})</h4>
                 <div class="space-y-3 max-h-60 overflow-y-auto pr-1 custom-scrollbar mb-4">
-                    ${post.comments && post.comments.length ? post.comments.map(c => `
-                            <div class="bg-slate-900/50 p-3 rounded-md border border-slate-800">
-                            <div class="flex justify-between items-start mb-1">
-                                <span class="font-bold text-sm text-blue-400">${c.user?.name || 'Unknown'}</span>
-                                <span class="text-[10px] text-slate-500">${new Date(c.createdAt || Date.now()).toLocaleDateString()}</span>
-                            </div>
-                            <p class="text-slate-300 text-sm">${c.text}</p>
-                            </div>
-                    `).join('') : '<p class="text-slate-500 text-sm italic">No comments yet.</p>'}
+                    ${post.comments && post.comments.length ?
+          buildCommentTree(post.comments).map(root => renderCommentNode(root)).join('')
+          : '<p class="text-slate-500 text-sm italic">No comments yet.</p>'}
                 </div>
                 
                 <!-- Add Comment Form for Feed -->
@@ -432,6 +474,62 @@ window.dispatch = async (action, payload) => {
             console.error(e);
             alert("Failed to add comment");
           }
+        }
+        break;
+      }
+
+      case 'toggle-reply': {
+        const id = payload;
+        const form = document.getElementById(`reply-form-${id}`);
+        if (form) {
+          form.classList.toggle('hidden');
+        }
+        break;
+      }
+
+      case 'submit-reply': {
+        const form = payload.target;
+        const text = form.text.value;
+        const postId = form.dataset.postId;
+        const parentId = form.dataset.parentId;
+
+        try {
+          const data = await api.addComment(postId, text, parentId);
+
+          // Append reply manually to the DOM
+          // Find the comment node
+          const formContainer = form.parentElement; // div.bg-slate...
+          const commentNode = formContainer.parentElement; // div.comment-node
+
+          let childrenContainer = commentNode.querySelector('.children-container');
+
+          // If it doesn't exist, create it
+          if (!childrenContainer) {
+            childrenContainer = document.createElement('div');
+            childrenContainer.className = 'children-container';
+            commentNode.appendChild(childrenContainer);
+          }
+
+          // Create new comment object for rendering
+          const newComment = {
+            _id: data._id || 'temp-' + Date.now(),
+            user: currentUser,
+            text: text,
+            createdAt: new Date().toISOString(),
+            children: [],
+            post: postId,
+            parent: parentId
+          };
+
+          // Render and append
+          const html = renderCommentNode(newComment, 1);
+          childrenContainer.insertAdjacentHTML('beforeend', html);
+
+          form.reset();
+          form.classList.add('hidden');
+        } catch (e) {
+          console.error(e);
+          alert("Failed to add reply");
         }
         break;
       }
