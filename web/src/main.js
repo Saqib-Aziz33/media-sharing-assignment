@@ -275,6 +275,11 @@ const ConsumerFeed = async () => {
             <img src="${api.STATIC_URL}/${post.media.url.startsWith('/') ? post.media.url.slice(1) : post.media.url}" class="w-full rounded-lg mb-4 bg-black object-contain max-h-[500px]" alt="${post.title}">
             
             <h2 class="text-xl font-bold text-white mb-2">${post.title}</h2>
+            ${post.peoplePresent && post.peoplePresent.length ? `
+                <div class="mb-2 text-slate-300 text-sm">
+                    <span class="font-bold text-slate-400">With:</span> ${post.peoplePresent.join(', ')}
+                </div>
+            ` : ''}
             <p class="text-slate-300 mb-4">${post.caption || ''}</p>
             
             <!-- Comments Section -->
